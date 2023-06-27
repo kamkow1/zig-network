@@ -133,8 +133,10 @@ pub const Address = union(AddressFamily) {
                 .Big => big_endian_parts.*,
                 .Little => blk: {
                     var buf: [8]u16 = undefined;
-                    for (big_endian_parts, 0..) |part, i| {
+                    var i = 0;
+                    for (big_endian_parts) |part| {
                         buf[i] = std.mem.bigToNative(u16, part);
+                        i += 1;
                     }
                     break :blk buf;
                 },
@@ -721,9 +723,11 @@ const LinuxOSLogic = struct {
     }
 
     inline fn remove(self: *Self, sock: Socket) void {
-        const index = for (self.fds.items, 0..) |item, i| {
+        var ii = 0;
+        const index = for (self.fds.items) |item| {
             if (item.fd == sock.internal)
-                break i;
+                break ii;
+            ii += 1;
         } else null;
 
         if (index) |idx| {
@@ -886,17 +890,22 @@ const WindowsOSLogic = struct {
     }
 
     inline fn remove(self: *Self, sock: Socket) void {
-        for (self.read_fds.items, 0..) |fd, idx| {
+        var i = 0;
+        for (self.read_fds.items) |fd| {
             if (fd == sock.internal) {
-                _ = self.read_fds.swapRemove(idx);
+                _ = self.read_fds.swapRemove(i);
                 break;
             }
+            i += 1;
         }
-        for (self.write_fds.items, 0..) |fd, idx| {
+
+        var j = 0;
+        for (self.write_fds.items) |fd| {
             if (fd == sock.internal) {
-                _ = self.write_fds.swapRemove(idx);
+                _ = self.write_fds.swapRemove(j);
                 break;
             }
+            j += 1;
         }
     }
 
@@ -1189,7 +1198,7 @@ fn libc_getaddrinfo(
     result: *?*std.os.addrinfo,
 ) GetAddrInfoError!void {
     const rc = std.os.system.getaddrinfo(name, port, hints, result);
-    if (rc != @enumFromInt(std.os.system.EAI, 0))
+    if (rc != @intToEnum(std.os.system.EAI, 0))
         return switch (rc) {
             .ADDRFAMILY => return error.HostLacksNetworkAddresses,
             .AGAIN => return error.TemporaryNameServerFailure,
