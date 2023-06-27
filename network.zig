@@ -133,7 +133,7 @@ pub const Address = union(AddressFamily) {
                 .Big => big_endian_parts.*,
                 .Little => blk: {
                     var buf: [8]u16 = undefined;
-                    var i = 0;
+                    var i: usize = 0;
                     for (big_endian_parts) |part| {
                         buf[i] = std.mem.bigToNative(u16, part);
                         i += 1;
